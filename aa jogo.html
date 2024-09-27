@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong</title>
+    <style>
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: black;
+        }
+
+        #menu {
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+        }
+
+        #scoreboard {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 24px;
+            color: white;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+</head>
+<body>
+    <div id="menu">
+        <h1>Pong Game</h1>
+        <button onclick="startGame(1)">Modo 1 Jogador</button>
+        <button onclick="startGame(2)">Modo 2 Jogadores</button>
+        <button onclick="toggleFullscreen()">Tela Cheia</button>
+    </div>
+    
+    <div id="scoreboard" style="display: none;">
+        <span id="playerScore">Jogador: 0</span> | 
+        <span id="computerScore">Computador: 0</span>
+    </div>
+
+    <script>
+        let ball;
+        let playerPaddle;
+        let computerPaddle;
+        let playerScore = 0;
+        let computerScore = 0;
+        let gameStarted = false;
+        let mode = 1; // 1 para um jogador, 2 para dois jogadores
+
+        function startGame(selectedMode) {
+            mode = selectedMode;
+            document.getElementById('menu').style.display = 'none';  // Esconde o menu
+            document.getElementById('scoreboard').style.display = 'block';  // Mostra o placar
+            gameStarted = true;
+            loop();  // Começa a desenhar
+        }
+
+        function setup() {
+            let canvas = createCanvas(600, 400);
+            canvas.parent(document.body);  // Coloca o canvas no corpo do documento
+            ball = new Ball();
+            playerPaddle = new Paddle(true);
+            computerPaddle = new Paddle(false);
+            noLoop();  // Não desenhar até o jogo começar
+        }
+
+        function draw() {
+            if (gameStarted) {
+                background(0);
+                ball.show();
+                ball.update();
+
+                playerPaddle.show();
+                playerPaddle.update();
+
+                computerPaddle.show();
+                computerPaddle.move(ball, mode); // Passa o modo para a máquina
+
+                // Colisões
+                if (ball.hits(playerPaddle) || ball.hits(computerPaddle)) {
+                    ball.reverse();  // Inverte a direção da bola
+                }
+
+                // Verifica se a bola saiu da tela
+                if (ball.x < 0) {
+                    computerScore++;
+                    updateScore();
+                    ball.reset();  // Reseta a bola
+                }
+                if (ball.x > width) {
+                    playerScore++;
+                    updateScore();
+                    ball.reset();  // Reseta a bola
+                }
+            }
+        }
+
+        function updateScore() {
+            document.getElementById('playerScore').innerText = `Jogador: ${playerScore}`;
+            document.getElementById('computerScore').innerText = `Computador: ${computerScore}`;
+        }
+
+        class Ball {
+            constructor() {
+                this.x = width / 2;
+                this.y = height / 2;
+                this.xSpeed = 5;
+                this.ySpeed = 3;
+                this.r = 12;
+            }
+
+            show() {
+                fill(255);
+                ellipse(this.x, this.y, this.r * 2);
+            }
+
+            update() {
+                this.x += this.xSpeed;
+                this.y += this.ySpeed;
+
+                if (this.y < 0 || this.y > height) {
+                    this.ySpeed *= -1;  // Bate na parte de cima/baixo
+                }
+            }
+
+            reset() {
+                this.x = width / 2;
+                this.y = height / 2;
+                this.xSpeed *= -1;  // Inverte a direção da bola
+            }
+
+            reverse() {
+                this.xSpeed *= -1;  // Inverte o sentido ao bater nas raquetes
+            }
+
+            hits(paddle) {
+                return (this.y > paddle.y && this.y < paddle.y + paddle.h &&
+                        (this.x - this.r < paddle.x + paddle.w && this.x + this.r > paddle.x));
+            }
+        }
+
+        class Paddle {
+            constructor(isPlayer) {
+                this.w = 10;
+                this.h = 100;
+                this.y = height / 2 - this.h / 2;
+                this.isPlayer = isPlayer;
+                this.x = isPlayer ? 20 : width - 30;
+            }
+
+            show() {
+                fill(255);
+                rect(this.x, this.y, this.w, this.h);
+            }
+
+            update() {
+                if (this.isPlayer) {
+                    if (keyIsDown(38)) { // seta para cima
+                        this.y = constrain(this.y - 10, 0, height - this.h);
+                    }
+                    if (keyIsDown(40)) { // seta para baixo
+                        this.y = constrain(this.y + 10, 0, height - this.h);
+                    }
+                }
+            }
+
+            move(ball, mode) {
+                if (mode === 1) { // Modo 1 Jogador
+                    this.y = constrain(ball.y - this.h / 2 + random(-30, 30), 0, height - this.h); // Um pouco de aleatoriedade
+                } else { // Modo 2 Jogadores
+                    // O computador segue a bola normalmente
+                    this.y = constrain(ball.y - this.h / 2, 0, height - this.h);
+                }
+            }
+        }
+
+        function toggleFullscreen() {
+            let fs = fullscreen();
+            fullscreen(!fs);  // Alterna entre tela cheia e modo janela
+        }
+    </script>
+</body>
+</html>
